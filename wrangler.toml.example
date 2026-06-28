@@ -31,4 +31,4 @@ max_batch_size = 1
 max_batch_timeout = 5
 
 [triggers]
-crons = ["0 0 * * *"] # 毎日0時実行
+crons = ["0 23 * * *"] # 毎日日本時間8時（UTC 23時）実行
