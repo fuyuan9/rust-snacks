@@ -10,7 +10,11 @@ renderer.code = (
   escaped: boolean,
 ): string => {
   if (infostring === "mermaid") {
-    return `<div class="mermaid">${code}</div>`;
+    const cleanedCode = code
+      .replace(/\\n/g, "\n")
+      .replace(/\\"/g, '"')
+      .replace(/\\'/g, "'");
+    return `<div class="mermaid">${cleanedCode}</div>`;
   }
   return originalCode(code, infostring, escaped);
 };
@@ -18,10 +22,11 @@ renderer.code = (
 const marked = new Marked({ renderer });
 
 export function parseMarkdown(md: string): string {
-  // Pre-process markdown to convert GitHub callouts
-  // > [!NOTE] -> > **NOTE** (or special styled blockquote)
-  let processed = md;
+  // Pre-process to convert markdown bold **text** to HTML strong tags
+  // This solves Marked's issue with Japanese word boundaries (e.g. **「text」**)
+  let processed = md.replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
 
+  // Pre-process markdown to convert GitHub callouts
   const alertTypes = ["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION"];
   for (const type of alertTypes) {
     const regex = new RegExp(`> \\[!${type}\\]`, "g");
