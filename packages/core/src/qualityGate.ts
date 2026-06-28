@@ -27,10 +27,10 @@ export function verifyArticleQuality(
     reasons.push("Title, slug, or body is empty.");
   }
 
-  // 2. Body length <= 3000 Japanese characters
-  if (article.body_markdown.length > 3000) {
+  // 2. Body length <= 15000 Japanese characters
+  if (article.body_markdown.length > 15000) {
     reasons.push(
-      `Body length is ${article.body_markdown.length} characters (must be <= 3000).`,
+      `Body length is ${article.body_markdown.length} characters (must be <= 15000).`,
     );
   }
 

@@ -57,12 +57,12 @@ A[Scheduler] --> B[Worker]
     expect(result.reasons).toContain("Title, slug, or body is empty.");
   });
 
-  it("should fail if body length exceeds 3000 characters", () => {
-    const longBody = "A".repeat(3001);
+  it("should fail if body length exceeds 15000 characters", () => {
+    const longBody = "A".repeat(15001);
     const invalid = { ...validArticle, body_markdown: longBody };
     const result = verifyArticleQuality(invalid);
     expect(result.passed).toBe(false);
-    expect(result.reasons[0]).toContain("must be <= 3000");
+    expect(result.reasons[0]).toContain("must be <= 15000");
   });
 
   it("should fail if it contains more than 5 tips", () => {

@@ -62,9 +62,10 @@ The goal is to teach software engineers and Rust learners practical patterns the
 
 CRITICAL REQUIREMENTS:
 - 1 Article MUST focus on exactly ONE theme.
-- Length: Short and readable. Under 3000 Japanese characters.
+- Length: Short and readable. Under 12000 Japanese characters.
 - Number of tips: Max 5 tips.
 - Diagrams: Max 3 Mermaid.js diagrams.
+- MERMAID SYNTAX RULES: To prevent syntax errors in Mermaid diagrams, any node labels or text containing parentheses "()", brackets "[]", or special characters MUST be enclosed in double quotes (e.g., A["Client (TCP)"] or B["Service [API]"]). Otherwise, parsing will fail. Use standard arrow notations like "-->" or "==>" without extra trailing spaces.
 - Include target commit SHA and analysis date in the header/meta.
 - Format: Markdown (no code blocks with extremely long raw code, focus on snippets).
 - Separate fact (what is in the code) from speculation (assumed intent/performance benefits).

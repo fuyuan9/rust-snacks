@@ -27,7 +27,7 @@ export function parseMarkdown(md: string): string {
     const regex = new RegExp(`> \\[!${type}\\]`, "g");
     processed = processed.replace(
       regex,
-      `> <span class="alert-badge alert-${type.toLowerCase()}">**${type}**</span>`,
+      `> <span class="alert-badge alert-${type.toLowerCase()}"><strong>${type}</strong></span>`,
     );
   }
 
@@ -37,7 +37,7 @@ export function parseMarkdown(md: string): string {
   // Custom class injection for blockquotes based on alert type
   let finalHtml = parsed;
   for (const type of alertTypes) {
-    const badgeHtml = `<span class="alert-badge alert-${type.toLowerCase()}">**${type}**</span>`;
+    const badgeHtml = `<span class="alert-badge alert-${type.toLowerCase()}"><strong>${type}</strong></span>`;
     // We want to add the class alert-type to the surrounding <blockquote>
     // To do this simply, we can replace blockquotes that contain the alert badge
     finalHtml = finalHtml.replace(
