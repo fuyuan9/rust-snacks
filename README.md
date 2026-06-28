@@ -35,6 +35,7 @@ pnpm install
 LLM_API_KEY=your-gemini-api-key
 GITHUB_TOKEN=your-github-token
 ADMIN_API_KEY=local-dev-admin-key
+ENVIRONMENT=development
 ```
 
 #### ② 開発サーバーの起動

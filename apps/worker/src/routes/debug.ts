@@ -8,6 +8,17 @@ export const debugRouter = new Hono<{ Bindings: Bindings }>();
 
 // GET /api/debug/generate
 debugRouter.get("/api/debug/generate", async (c) => {
+  // Block this endpoint in production environments
+  if (c.env.ENVIRONMENT === "production") {
+    return c.json(
+      {
+        error:
+          "This endpoint is not available in production. Use POST /api/jobs/trigger instead.",
+      },
+      403,
+    );
+  }
+
   const adminKey = c.env.ADMIN_API_KEY;
   if (!adminKey) {
     return c.json(

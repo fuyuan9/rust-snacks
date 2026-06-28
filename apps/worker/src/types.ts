@@ -18,4 +18,5 @@ export interface Bindings {
   LLM_MODEL?: string;
   SITE_DOMAIN?: string;
   ADMIN_API_KEY?: string;
+  ENVIRONMENT?: string; // 'production' | 'development'
 }
