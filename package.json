@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --filter worker dev",
-    "deploy": "pnpm --filter worker deploy",
+    "deploy": "pnpm --filter worker run deploy",
     "build": "pnpm -r build",
     "lint": "biome lint .",
     "format": "biome format --write .",
