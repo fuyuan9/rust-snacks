@@ -7,7 +7,7 @@ import type { Bindings } from "../types";
 export const debugRouter = new Hono<{ Bindings: Bindings }>();
 
 // GET /api/debug/generate
-debugRouter.get("/generate", async (c) => {
+debugRouter.get("/api/debug/generate", async (c) => {
   const adminKey = c.env.ADMIN_API_KEY;
   if (!adminKey) {
     return c.json(

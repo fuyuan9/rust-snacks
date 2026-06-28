@@ -33,7 +33,7 @@ app.route("/", articlesRouter);
 app.route("/", rssRouter);
 app.route("/", sitemapRouter);
 app.route("/api/jobs", jobsRouter);
-app.route("/api/debug", debugRouter);
+app.route("/", debugRouter);
 
 export default {
   // HTTP Fetch Handler

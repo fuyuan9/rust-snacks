@@ -24,6 +24,7 @@
     "ignore": [
       "**/dist/**",
       "**/node_modules/**",
+      "**/.wrangler/**",
       "packages/*/dist/**",
       "apps/*/dist/**"
     ]
