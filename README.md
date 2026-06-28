@@ -23,6 +23,18 @@ pnpm install
 ```
 
 ### 2. ローカルでの動作確認 (Wrangler)
+ローカル環境で動作検証やデバッグを行うためには、APIキーなどの環境変数をローカル用に設定する必要があります。
+
+#### ① `.dev.vars` の作成
+プロジェクトのルートディレクトリ（`wrangler.toml` と同じディレクトリ）に `.dev.vars` という名前のファイルを作成し、以下のように必要なシークレットを入力します。
+
+```env
+LLM_API_KEY=your-gemini-api-key
+GITHUB_TOKEN=your-github-token
+ADMIN_API_KEY=local-dev-admin-key
+```
+
+#### ② 開発サーバーの起動
 ```bash
 pnpm dev
 ```
