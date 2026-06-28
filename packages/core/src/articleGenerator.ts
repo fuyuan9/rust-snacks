@@ -176,6 +176,109 @@ Please ensure you continue the explanation, focusing on a DIFFERENT theme and re
       );
     }
 
+    // If it is a series and this was Part 1, pre-generate the rest of the series in needs_review status
+    if (
+      generatedArticle.is_series &&
+      finalSeriesTotal > 1 &&
+      finalSeriesIndex === 1
+    ) {
+      console.log(
+        `Starting bulk generation for the rest of the series (Part 2 to ${finalSeriesTotal})`,
+      );
+      let currentSeriesIndex = finalSeriesIndex;
+      let lastArticle = {
+        title: generatedArticle.title,
+        slug: generatedArticle.slug,
+        body_markdown: generatedArticle.body_markdown,
+      };
+
+      while (currentSeriesIndex < finalSeriesTotal) {
+        const nextIndex = currentSeriesIndex + 1;
+        console.log(`Generating Part ${nextIndex} / ${finalSeriesTotal}...`);
+
+        const nextPreviousContext = `This article is Part ${nextIndex} of an ongoing series.
+Previous Part Title: "${lastArticle.title}"
+Previous Part Slug: "${lastArticle.slug}"
+Previous Part Markdown summary (first 500 chars):
+${lastArticle.body_markdown.substring(0, 500)}
+Please ensure you continue the explanation, focusing on a DIFFERENT theme and referring to the previous part where relevant.`;
+
+        const nextWritePrompt = ARTICLE_WRITER_PROMPT.replace(
+          "{{seriesIndex}}",
+          nextIndex.toString(),
+        ).replace(
+          "{{analysis}}",
+          JSON.stringify({
+            repo,
+            understanding,
+            analysis,
+            commitSha,
+            analyzedAt,
+            previousContext: nextPreviousContext,
+          }),
+        );
+
+        try {
+          const nextGenerated =
+            await this.llmClient.generateJson<ArticleResult>(nextWritePrompt);
+          const nextBodyHtml = parseMarkdown(nextGenerated.body_markdown);
+          const nextCompleteHtml = renderLayout({
+            title: nextGenerated.seo.title,
+            description: nextGenerated.seo.description,
+            keywords: nextGenerated.seo.keywords,
+            bodyHtml: `
+              <article class="content-body">
+                <div class="article-header">
+                  <h1 class="article-title">${nextGenerated.title}</h1>
+                  <div class="meta-info">
+                    <div class="meta-item">解析日: ${new Date(analyzedAt).toLocaleDateString("ja-JP")}</div>
+                    <div class="meta-item">対象コミット: <a href="https://github.com/${repo.owner}/${repo.name}/commit/${commitSha}" target="_blank">${commitSha.substring(0, 7)}</a></div>
+                    <div class="meta-item">リポジトリ: <a href="https://github.com/${repo.owner}/${repo.name}" target="_blank">${repo.owner}/${repo.name}</a></div>
+                  </div>
+                  <div class="tags">
+                    ${nextGenerated.tags.map((t) => `<span class="tag">${t}</span>`).join("")}
+                  </div>
+                </div>
+                ${nextBodyHtml}
+              </article>
+            `,
+          });
+
+          await dbClient.insertArticle({
+            repository_id: repo.id,
+            series_id: finalSeriesId,
+            series_index: nextIndex,
+            series_total: finalSeriesTotal,
+            is_series: 1,
+            status: "needs_review", // Stocked for later automatic publication
+            slug: nextGenerated.slug,
+            title: nextGenerated.title,
+            body_markdown: nextGenerated.body_markdown,
+            body_html: nextCompleteHtml,
+            tags_json: JSON.stringify(nextGenerated.tags),
+            seo_json: JSON.stringify(nextGenerated.seo),
+            published_at: null,
+            unpublished_at: null,
+            analyzed_at: analyzedAt,
+            target_commit_sha: commitSha,
+          });
+
+          currentSeriesIndex = nextIndex;
+          lastArticle = {
+            title: nextGenerated.title,
+            slug: nextGenerated.slug,
+            body_markdown: nextGenerated.body_markdown,
+          };
+        } catch (err) {
+          console.error(
+            `Failed to generate Part ${nextIndex} during bulk generation:`,
+            err,
+          );
+          break; // Stop loop on error
+        }
+      }
+    }
+
     // Update repository status to analyzed
     await dbClient.updateRepositoryStatus(repo.id, "analyzed");
 

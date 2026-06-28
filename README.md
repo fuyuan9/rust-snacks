@@ -162,3 +162,22 @@ curl -X POST https://your-domain.com/api/jobs/trigger \
   -d '{"repositoryId": 10}'
 ```
 
+---
+
+### ローカル同期デバッグAPI（開発用・同期実行）
+開発中にQueueのバックグラウンド実行を待つことなく、同期処理で即時に記事を自動生成させ、その場ですぐにマークダウンのレンダリング・Prismによるハイライト・Mermaid の動作をデバッグするためのエンドポイント（`GET /api/debug/generate`）が用意されています。
+
+#### 1. 使い方（ブラウザでのアクセス）
+ローカル開発サーバー（`pnpm dev`）を立ち上げた状態で、ブラウザから以下の URL に直接アクセスします。
+
+```text
+http://localhost:8787/api/debug/generate?key=local-dev-admin-key&repoId=10
+```
+
+- **`key`**: wrangler.toml の `[vars]` で設定されている `ADMIN_API_KEY` の値（ローカル開発時の初期値: `local-dev-admin-key`）を入力します。
+- **`repoId`** (オプション): D1 に候補登録されているリポジトリIDを指定します。指定しない場合は、自動スコアリングに基づいてトップのリポジトリが自動選定されます。
+
+#### 2. 挙動
+実行すると、ブラウザ上で数秒間待機した後、**新しく生成された記事ページ（`http://localhost:8787/articles/your-slug`）へと自動的にリダイレクト**され、記事の見た目やシンタックスハイライトが効いているかを即時に調整できます。
+
+

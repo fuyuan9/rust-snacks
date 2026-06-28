@@ -230,4 +230,37 @@ export class DbClient {
       .bind(status, errorMessage || null, now, id)
       .run();
   }
+
+  async getLatestPendingSeriesArticle(): Promise<Article | null> {
+    return this.db
+      .prepare(
+        "SELECT * FROM articles WHERE (status = 'needs_review' OR status = 'unpublished') AND is_series = 1 ORDER BY series_id, series_index ASC LIMIT 1",
+      )
+      .first<Article>();
+  }
+
+  async publishArticle(id: number): Promise<void> {
+    await this.db
+      .prepare(
+        "UPDATE articles SET status = 'published', published_at = ? WHERE id = ?",
+      )
+      .bind(new Date().toISOString(), id)
+      .run();
+  }
+
+  async hasRecentArticle(
+    repositoryId: number,
+    daysLimit: number,
+  ): Promise<boolean> {
+    const cutoffDate = new Date(
+      Date.now() - daysLimit * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const result = await this.db
+      .prepare(
+        "SELECT id FROM articles WHERE repository_id = ? AND analyzed_at > ? LIMIT 1",
+      )
+      .bind(repositoryId, cutoffDate)
+      .first();
+    return !!result;
+  }
 }

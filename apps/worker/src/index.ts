@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { handleScheduled } from "./cron";
 import { handleQueue } from "./queue";
 import { articlesRouter } from "./routes/articles";
+import { debugRouter } from "./routes/debug";
 import { jobsRouter } from "./routes/jobs";
 import { rssRouter } from "./routes/rss";
 import { sitemapRouter } from "./routes/sitemap";
@@ -32,6 +33,7 @@ app.route("/", articlesRouter);
 app.route("/", rssRouter);
 app.route("/", sitemapRouter);
 app.route("/api/jobs", jobsRouter);
+app.route("/api/debug", debugRouter);
 
 export default {
   // HTTP Fetch Handler

@@ -40,6 +40,15 @@ export async function selectTopRepository(
   let highestScore = -1;
 
   for (const repo of discovered) {
+    // Cooldown check: Do not select repositories that have been written about in the last 90 days
+    const hasRecent = await dbClient.hasRecentArticle(repo.id, 90);
+    if (hasRecent) {
+      console.log(
+        `Repository ${repo.owner}/${repo.name} (ID: ${repo.id}) is on cooldown (90 days). Skipping.`,
+      );
+      continue;
+    }
+
     const score = calculateScore(repo);
     if (score > highestScore) {
       highestScore = score;
