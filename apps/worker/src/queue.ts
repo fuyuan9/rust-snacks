@@ -146,6 +146,7 @@ export async function handleQueue(
               const generator = new ArticleGenerator(
                 llmApiKey,
                 env.LLM_PROVIDER,
+                env.LLM_MODEL,
               );
               const articleId = await generator.generateArticle(
                 dbClient,

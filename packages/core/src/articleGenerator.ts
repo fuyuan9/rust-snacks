@@ -20,8 +20,8 @@ import { verifyArticleQuality } from "./qualityGate";
 export class ArticleGenerator {
   private llmClient: LlmClient;
 
-  constructor(apiKey: string, provider = "gemini") {
-    this.llmClient = new LlmClient({ apiKey, provider });
+  constructor(apiKey: string, provider = "gemini", model?: string) {
+    this.llmClient = new LlmClient({ apiKey, provider, model });
   }
 
   async generateArticle(

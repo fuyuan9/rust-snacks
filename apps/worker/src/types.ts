@@ -15,5 +15,6 @@ export interface Bindings {
   GITHUB_TOKEN?: string;
   LLM_API_KEY?: string;
   LLM_PROVIDER?: string; // 'gemini' | 'cloudflare' etc.
+  LLM_MODEL?: string;
   SITE_DOMAIN?: string;
 }

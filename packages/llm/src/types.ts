@@ -1,6 +1,7 @@
 export interface LlmConfig {
   apiKey?: string;
   provider?: string; // 'gemini' | 'cloudflare' etc.
+  model?: string;
 }
 
 export interface UnderstandingResult {

@@ -4,6 +4,7 @@ compatibility_date = "2024-04-03"
 
 [vars]
 LLM_PROVIDER = "gemini"
+LLM_MODEL = "gemini-1.5-flash"
 
 [[kv_namespaces]]
 binding = "KV"

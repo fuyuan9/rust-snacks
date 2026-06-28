@@ -31,7 +31,8 @@ export class LlmClient {
       throw new Error("Gemini API key is required but not provided.");
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const model = this.config.model || "gemini-1.5-flash";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     let attempt = 0;
 
     while (attempt < retries) {
