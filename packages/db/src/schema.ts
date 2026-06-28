@@ -42,6 +42,7 @@ export interface Article {
   unpublished_at: string | null;
   analyzed_at: string;
   target_commit_sha: string;
+  needs_review_reason: string | null;
 }
 
 export interface Job {

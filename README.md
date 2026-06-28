@@ -139,9 +139,15 @@ Cron Trigger または Queue メッセージによって、以下の流れで段
      - Mermaidダイアグラムが **3個以内**
      - コードブロックが **50行以内**
      - トレードオフ・注意点セクションが存在すること
-   - 合格すれば `published` として即時公開、不合格なら `needs_review` として下書き保存。
-   - 連載継続時は前回パートのテーマ・要約をコンテキストにインジェクトし、Part N+1 として自動継続。
-   - **連載の一括事前生成**: AIが連載記事（`is_series = true` 且つ `series_total > 1`）と判定した場合、その場で Part 2 から Part N まで全記事を順次LLMで連続生成し、`needs_review` ステータスでD1にストックします。次回以降のCron実行時に順次1件ずつ自動公開されます。
+    - **生成記事のステータス決定と公開フロー**:
+      - **単発記事およびシリーズ第1話**:
+        - 品質ゲートをパスした場合: **`published`** ステータスとなり即時公開されます。
+        - 品質ゲートをパスしなかった場合: **`needs_review`** ステータスとなり、その理由が `needs_review_reason` カラムに記録され自動公開は保留されます。
+      - **シリーズ第2話以降（一括事前生成された記事）**:
+        - 品質ゲートをパスした場合: **`unpublished`** ステータス（自動公開待ち）となります。次回以降の Cron 実行時に自動で `published` に昇格し、順次公開されます。
+        - 品質ゲートをパスしなかった場合: **`needs_review`** ステータスとなり、理由は `needs_review_reason` に記録されます。自動公開の対象からは除外され、保留となります。
+    - 連載継続時は前回パートのテーマ・要約をコンテキストにインジェクトし、Part N+1 として自動継続。
+    - **連載の一括事前生成**: AIが連載記事（`is_series = true` 且つ `series_total > 1`）と判定した場合、その場で Part 2 から Part N まで全記事を順次LLMで連続生成し、検証結果に基づき `unpublished` または `needs_review` ステータスでD1にストックします。
 
 ### 生成記事の構成
 
@@ -189,10 +195,23 @@ npx wrangler r2 object delete rust-snacks-bucket/rss.xml --remote
 npx wrangler r2 object delete rust-snacks-bucket/sitemap.xml --remote
 ```
 
-#### 記事を一括・または個別に非公開（下書き）にする場合：
+#### 記事の要レビュー理由（クオリティゲート未通過理由）を確認する場合：
+1. `needs_review_reason` カラムを取得して未通過となったルールを確認します。
+```bash
+npx wrangler d1 execute rust-snacks-db --remote --command="SELECT id, title, status, needs_review_reason FROM articles;"
+```
+
+#### 保留中の記事（needs_review）を手動で承認して自動公開待ち（unpublished）にする場合：
+1. 内容を修正するか、そのまま公開可能と判断した場合は、ステータスを `unpublished` に更新します。
+```bash
+npx wrangler d1 execute rust-snacks-db --remote --command="UPDATE articles SET status = 'unpublished', needs_review_reason = null WHERE id = 3;"
+```
+*(これにより、次回の Cron スケジュール実行時に自動的に公開されます。)*
+
+#### 記事を一括・または個別に非公開（下書き・保留）にする場合：
 1. D1 でステータスを `unpublished`（非公開）または `needs_review` に戻します。
 ```bash
-npx wrangler d1 execute rust-snacks-db --remote --command="UPDATE articles SET status = 'unpublished' WHERE id = 3;"
+npx wrangler d1 execute rust-snacks-db --remote --command="UPDATE articles SET status = 'needs_review' WHERE id = 3;"
 ```
 2. R2から該当記事の静的 HTML キャッシュ、およびインデックス等の配信ファイルを削除します。
 ```bash
@@ -205,6 +224,7 @@ npx wrangler r2 object delete rust-snacks-bucket/sitemap.xml --remote
 > [!NOTE]
 > **キャッシュ削除後のオンデマンド自動生成**
 > R2から削除された `index.html`, `rss.xml`, `sitemap.xml` は、次のユーザーアクセスがあった瞬間に自動的にD1の最新公開データに基づいてバックグラウンドで再生成され、R2にキャッシュされます。
+
 
 ---
 

@@ -114,6 +114,9 @@ Please ensure you continue the explanation, focusing on a DIFFERENT theme and re
     // Step 4: Quality Gate
     const gateResult = verifyArticleQuality(articleInput);
     const status = gateResult.passed ? "published" : "needs_review";
+    const needs_review_reason = gateResult.passed
+      ? null
+      : gateResult.reasons.join("\n");
 
     // Form complete HTML with layout
     const completeHtml = renderLayout({
@@ -164,6 +167,7 @@ Please ensure you continue the explanation, focusing on a DIFFERENT theme and re
       unpublished_at: null,
       analyzed_at: analyzedAt,
       target_commit_sha: commitSha,
+      needs_review_reason,
     });
 
     // Step 5: Save assets to R2 if published
@@ -244,13 +248,31 @@ Please ensure you continue the explanation, focusing on a DIFFERENT theme and re
             `,
           });
 
+          const nextArticleInput = {
+            title: nextGenerated.title,
+            slug: nextGenerated.slug,
+            body_markdown: nextGenerated.body_markdown,
+            tags: nextGenerated.tags,
+            seo: nextGenerated.seo,
+            target_commit_sha: commitSha,
+            analyzed_at: analyzedAt,
+          };
+
+          const nextGateResult = verifyArticleQuality(nextArticleInput);
+          const nextStatus = nextGateResult.passed
+            ? "unpublished"
+            : "needs_review";
+          const nextReviewReason = nextGateResult.passed
+            ? null
+            : nextGateResult.reasons.join("\n");
+
           await dbClient.insertArticle({
             repository_id: repo.id,
             series_id: finalSeriesId,
             series_index: nextIndex,
             series_total: finalSeriesTotal,
             is_series: 1,
-            status: "needs_review", // Stocked for later automatic publication
+            status: nextStatus,
             slug: nextGenerated.slug,
             title: nextGenerated.title,
             body_markdown: nextGenerated.body_markdown,
@@ -261,6 +283,7 @@ Please ensure you continue the explanation, focusing on a DIFFERENT theme and re
             unpublished_at: null,
             analyzed_at: analyzedAt,
             target_commit_sha: commitSha,
+            needs_review_reason: nextReviewReason,
           });
 
           currentSeriesIndex = nextIndex;

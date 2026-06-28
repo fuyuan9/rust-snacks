@@ -145,7 +145,7 @@ export class DbClient {
   async insertArticle(article: Omit<Article, "id">): Promise<number> {
     const result = await this.db
       .prepare(
-        "INSERT INTO articles (repository_id, series_id, series_index, series_total, is_series, status, slug, title, body_markdown, body_html, tags_json, seo_json, published_at, unpublished_at, analyzed_at, target_commit_sha) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO articles (repository_id, series_id, series_index, series_total, is_series, status, slug, title, body_markdown, body_html, tags_json, seo_json, published_at, unpublished_at, analyzed_at, target_commit_sha, needs_review_reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .bind(
         article.repository_id,
@@ -164,6 +164,7 @@ export class DbClient {
         article.unpublished_at,
         article.analyzed_at,
         article.target_commit_sha,
+        article.needs_review_reason,
       )
       .run();
     return result.meta.last_row_id || 0;
@@ -234,7 +235,7 @@ export class DbClient {
   async getLatestPendingSeriesArticle(): Promise<Article | null> {
     return this.db
       .prepare(
-        "SELECT * FROM articles WHERE (status = 'needs_review' OR status = 'unpublished') AND is_series = 1 ORDER BY series_id, series_index ASC LIMIT 1",
+        "SELECT * FROM articles WHERE status = 'unpublished' AND is_series = 1 ORDER BY series_id, series_index ASC LIMIT 1",
       )
       .first<Article>();
   }
