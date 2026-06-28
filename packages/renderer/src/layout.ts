@@ -103,7 +103,7 @@ export function renderArticleList(articles: ArticleListItem[]): string {
   const bodyHtml = `
     <div class="article-header">
       <h1 class="article-title">記事一覧</h1>
-      <p style="color: #9ca3af;">RustのOSSコードから、設計思想・アーキテクチャ・Tipsを1話3分で学ぶ。</p>
+      <p style="color: #9ca3af;">RustのOSSコードから、設計思想・アーキテクチャ・Tipsを学ぶ。</p>
     </div>
     <div class="articles-list">
       ${listHtml || '<p style="color: #9ca3af;">現在、公開されている記事はありません。</p>'}
