@@ -17,4 +17,5 @@ export interface Bindings {
   LLM_PROVIDER?: string; // 'gemini' | 'cloudflare' etc.
   LLM_MODEL?: string;
   SITE_DOMAIN?: string;
+  ADMIN_API_KEY?: string;
 }

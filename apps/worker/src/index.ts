@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { handleScheduled } from "./cron";
 import { handleQueue } from "./queue";
 import { articlesRouter } from "./routes/articles";
+import { jobsRouter } from "./routes/jobs";
 import { rssRouter } from "./routes/rss";
 import { sitemapRouter } from "./routes/sitemap";
 import type { Bindings } from "./types";
@@ -30,6 +31,7 @@ app.use("*", async (c, next) => {
 app.route("/", articlesRouter);
 app.route("/", rssRouter);
 app.route("/", sitemapRouter);
+app.route("/api/jobs", jobsRouter);
 
 export default {
   // HTTP Fetch Handler

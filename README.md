@@ -133,3 +133,32 @@ R2から削除された `index.html`, `rss.xml`, `sitemap.xml` は、**「削除
 - **新規記事の公開時**: 配信パイプライン内でR2キャッシュが自動削除されます。
 - **手動での非公開化時**: 上記コマンドで手動削除します。
 - **再生成フロー**: アクセス時にR2にファイルが存在しないことを検知すると、D1から最新の公開済みデータを取得してHTML/XMLを再レンダリングし、R2にキャッシュを保存しつつレスポンスを返します。
+
+---
+
+### 記事生成の手動起動方法
+日次の Cron Trigger を待たずに手動でパイプラインを起動するためのセキュアなエンドポイント（`POST /api/jobs/trigger`）が用意されています。
+
+#### 1. 管理キー (ADMIN_API_KEY) の登録
+本番環境で起動できるように、管理キーを登録しておきます。
+```bash
+npx wrangler secret put ADMIN_API_KEY
+# 任意のトークンを入力して登録します
+```
+
+#### 2. curl による手動実行コマンド
+
+##### フルパイプライン（収集から開始）を起動する場合：
+```bash
+curl -X POST https://your-domain.com/api/jobs/trigger \
+  -H "Authorization: Bearer your-admin-key"
+```
+
+##### 特定のリポジトリ（D1のID: 10）を直接指定して、Snapshot 取得 & 解析・記事執筆を起動する場合：
+```bash
+curl -X POST https://your-domain.com/api/jobs/trigger \
+  -H "Authorization: Bearer your-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{"repositoryId": 10}'
+```
+
