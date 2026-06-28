@@ -1,0 +1,19 @@
+{
+  "name": "@rust-snacks/core",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@rust-snacks/db": "workspace:*",
+    "@rust-snacks/github": "workspace:*",
+    "@rust-snacks/llm": "workspace:*",
+    "@rust-snacks/renderer": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240512.0"
+  }
+}

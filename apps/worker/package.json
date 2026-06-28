@@ -1,0 +1,22 @@
+{
+  "name": "worker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.3.7",
+    "@rust-snacks/db": "workspace:*",
+    "@rust-snacks/github": "workspace:*",
+    "@rust-snacks/llm": "workspace:*",
+    "@rust-snacks/renderer": "workspace:*",
+    "@rust-snacks/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240512.0",
+    "wrangler": "^3.57.1"
+  }
+}

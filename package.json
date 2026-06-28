@@ -1,0 +1,17 @@
+{
+  "name": "rust-snacks",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter worker dev",
+    "deploy": "pnpm --filter worker deploy",
+    "build": "pnpm -r build",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.8.3",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}
