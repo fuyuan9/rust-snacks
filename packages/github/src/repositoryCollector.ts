@@ -16,6 +16,23 @@ export class RepositoryCollector {
     let count = 0;
 
     for (const repo of repos) {
+      // Exclude core rust repository
+      if (
+        repo.owner.login.toLowerCase() === "rust-lang" &&
+        repo.name.toLowerCase() === "rust"
+      ) {
+        console.log("Skipping core rust repository: rust-lang/rust");
+        continue;
+      }
+
+      // Exclude excessively large repositories (> 100MB = 100,000 KB)
+      if (repo.size > 100000) {
+        console.log(
+          `Skipping excessively large repository: ${repo.owner.login}/${repo.name} (Size: ${repo.size} KB)`,
+        );
+        continue;
+      }
+
       // Check if already in db
       const existing = await dbClient.getRepositoryByGithubId(repo.id);
 

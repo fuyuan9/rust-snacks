@@ -40,6 +40,17 @@ export async function selectTopRepository(
   let highestScore = -1;
 
   for (const repo of discovered) {
+    // Safety check: Exclude core rust repository
+    if (
+      repo.owner.toLowerCase() === "rust-lang" &&
+      repo.name.toLowerCase() === "rust"
+    ) {
+      console.log(
+        `Repository ${repo.owner}/${repo.name} (ID: ${repo.id}) is permanently excluded. Skipping.`,
+      );
+      continue;
+    }
+
     // Cooldown check: Do not select repositories that have been written about in the last 90 days
     const hasRecent = await dbClient.hasRecentArticle(repo.id, 90);
     if (hasRecent) {
