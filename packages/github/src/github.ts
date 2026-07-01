@@ -120,14 +120,27 @@ export class GithubClient {
     }
   }
 
+  async getRepoDetails(owner: string, repo: string): Promise<GithubRepo> {
+    return this.request<GithubRepo>(`/repos/${owner}/${repo}`);
+  }
+
   async getFileTree(
     owner: string,
     repo: string,
-    branch = "main",
+    branch?: string,
   ): Promise<{ path: string; type: string; sha: string; size?: number }[]> {
+    let targetBranch = branch;
+    if (!targetBranch) {
+      try {
+        const repoDetails = await this.getRepoDetails(owner, repo);
+        targetBranch = repoDetails.default_branch || "main";
+      } catch (e) {
+        targetBranch = "main";
+      }
+    }
     try {
       // First get the latest commit sha of the branch
-      const refPath = `/repos/${owner}/${repo}/git/ref/heads/${branch}`;
+      const refPath = `/repos/${owner}/${repo}/git/ref/heads/${targetBranch}`;
       const refData = await this.request<{ object: { sha: string } }>(refPath);
       const commitSha = refData.object.sha;
 
@@ -138,8 +151,8 @@ export class GithubClient {
       }>(treePath);
       return treeData.tree || [];
     } catch (e) {
-      // Fallback if branch is master instead of main
-      if (branch === "main") {
+      // Fallback if branch is main instead of master
+      if (targetBranch === "main") {
         return this.getFileTree(owner, repo, "master");
       }
       return [];
@@ -149,14 +162,23 @@ export class GithubClient {
   async getLatestCommitSha(
     owner: string,
     repo: string,
-    branch = "main",
+    branch?: string,
   ): Promise<string> {
+    let targetBranch = branch;
+    if (!targetBranch) {
+      try {
+        const repoDetails = await this.getRepoDetails(owner, repo);
+        targetBranch = repoDetails.default_branch || "main";
+      } catch (e) {
+        targetBranch = "main";
+      }
+    }
     try {
-      const refPath = `/repos/${owner}/${repo}/git/ref/heads/${branch}`;
+      const refPath = `/repos/${owner}/${repo}/git/ref/heads/${targetBranch}`;
       const refData = await this.request<{ object: { sha: string } }>(refPath);
       return refData.object.sha;
     } catch (e) {
-      if (branch === "main") {
+      if (targetBranch === "main") {
         return this.getLatestCommitSha(owner, repo, "master");
       }
       throw e;
