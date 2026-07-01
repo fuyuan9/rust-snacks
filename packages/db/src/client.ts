@@ -137,7 +137,7 @@ export class DbClient {
   async getLatestActiveSeries(): Promise<Article | null> {
     return this.db
       .prepare(
-        "SELECT * FROM articles WHERE is_series = 1 AND series_index < series_total ORDER BY id DESC LIMIT 1",
+        "SELECT * FROM articles WHERE is_series = 1 AND series_id NOT IN (SELECT series_id FROM articles WHERE is_series = 1 AND series_index = series_total AND series_id IS NOT NULL) ORDER BY id DESC LIMIT 1",
       )
       .first<Article>();
   }
