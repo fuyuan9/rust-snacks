@@ -84,10 +84,38 @@ export function repairMermaidSyntax(code: string): string {
   const repairedLines = lines.map((line) => {
     let repaired = line;
 
-    // Check if it's a comment
     if (repaired.trim().startsWith("%%")) {
       return repaired;
     }
+
+    // 0.5. Repair unquoted subgraph titles containing parentheses or brackets
+    const subgraphRegex = /^(\s*subgraph\s+\w+\s*\[)([^\]]+)(\].*)$/i;
+    repaired = repaired.replace(subgraphRegex, (match, prefix, title, suffix) => {
+      const trimmedTitle = title.trim();
+      if (
+        trimmedTitle &&
+        (trimmedTitle.includes("(") || trimmedTitle.includes(")")) &&
+        !trimmedTitle.startsWith('"') &&
+        !trimmedTitle.endsWith('"')
+      ) {
+        return `${prefix}"${trimmedTitle}"${suffix}`;
+      }
+      return match;
+    });
+
+    const subgraphParenRegex = /^(\s*subgraph\s+\w+\s*\()([^)]+)(\).*)$/i;
+    repaired = repaired.replace(subgraphParenRegex, (match, prefix, title, suffix) => {
+      const trimmedTitle = title.trim();
+      if (
+        trimmedTitle &&
+        (trimmedTitle.includes("[") || trimmedTitle.includes("]")) &&
+        !trimmedTitle.startsWith('"') &&
+        !trimmedTitle.endsWith('"')
+      ) {
+        return `${prefix}"${trimmedTitle}"${suffix}`;
+      }
+      return match;
+    });
 
     // 1. Repair invalid arrows "->" to "-->" (only outside quotes)
     const parts = repaired.split('"');

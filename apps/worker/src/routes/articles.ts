@@ -46,6 +46,7 @@ articlesRouter.get("/api/articles/:slug", async (c) => {
 articlesRouter.get("/", async (c) => {
   // Try getting index from R2 first, fallback to dynamic generation via D1
   const html = await getArticlesIndexAsset(c.env.DB, c.env.BUCKET);
+  c.header("Cache-Control", "no-cache, must-revalidate");
   return c.html(html);
 });
 
@@ -59,6 +60,7 @@ articlesRouter.get("/articles/:slug", async (c) => {
   const slug = c.req.param("slug");
   try {
     const html = await getArticleAsset(slug, c.env.DB, c.env.BUCKET);
+    c.header("Cache-Control", "no-cache, must-revalidate");
     return c.html(html);
   } catch (error) {
     return c.html(

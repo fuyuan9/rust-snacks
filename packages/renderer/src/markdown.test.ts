@@ -61,6 +61,22 @@ graph TD
 `;
     expect(repairMermaidSyntax(input).trim()).toBe(expected.trim());
   });
+
+  it("should wrap unquoted subgraph titles containing parentheses in double quotes", () => {
+    const input = `
+graph TD
+  subgraph BuildTime [ビルドタイム (Cargo / build.rs)]
+    A --> B
+  end
+`;
+    const expected = `
+graph TD
+  subgraph BuildTime ["ビルドタイム (Cargo / build.rs)"]
+    A --> B
+  end
+`;
+    expect(repairMermaidSyntax(input).trim()).toBe(expected.trim());
+  });
 });
 
 describe("parseMarkdown with Mermaid rendering integration", () => {
