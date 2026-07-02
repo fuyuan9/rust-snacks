@@ -14,7 +14,8 @@ renderer.code = (
       .replace(/\\n/g, "\n")
       .replace(/\\"/g, '"')
       .replace(/\\'/g, "'");
-    return `<div class="mermaid">${cleanedCode}</div>`;
+    const repairedCode = repairMermaidSyntax(cleanedCode);
+    return `<div class="mermaid">${repairedCode}</div>`;
   }
   return originalCode(code, infostring, escaped);
 };
@@ -76,4 +77,162 @@ export function sanitizeHtml(html: string): string {
     "",
   );
   return clean;
+}
+
+export function repairMermaidSyntax(code: string): string {
+  const lines = code.split("\n");
+  const repairedLines = lines.map((line) => {
+    let repaired = line;
+
+    // Check if it's a comment
+    if (repaired.trim().startsWith("%%")) {
+      return repaired;
+    }
+
+    // 1. Repair invalid arrows "->" to "-->" (only outside quotes)
+    const parts = repaired.split('"');
+    for (let j = 0; j < parts.length; j += 2) {
+      parts[j] = parts[j]
+        .replace(/\b->\b/g, "-->")
+        .replace(/\s+->\s+/g, " --> ");
+    }
+    repaired = parts.join('"');
+
+    // 2. Repair unquoted node labels with parentheses or brackets
+    const delimiterPairs = [
+      { open: "([", close: "])" },
+      { open: "[[", close: "]]" },
+      { open: "[(", close: ")]" },
+      { open: "((", close: "))" },
+      { open: "[/", close: "/]" },
+      { open: "[\\", close: "\\]" },
+      { open: "{{", close: "}}" },
+      { open: "[", close: "]" },
+      { open: "(", close: ")" },
+      { open: "{", close: "}" },
+      { open: ">", close: "]" },
+    ];
+
+    for (const { open, close } of delimiterPairs) {
+      repaired = repairLineDelimiters(repaired, open, close);
+    }
+
+    return repaired;
+  });
+  return repairedLines.join("\n");
+}
+
+function parseNodeShape(
+  line: string,
+  open: string,
+  close: string,
+): { id: string; label: string; start: number; end: number } | null {
+  const openIdx = line.indexOf(open);
+  if (openIdx === -1) return null;
+
+  // Prevent single-character open delimiters from matching when they are part of multi-character delimiters
+  if (open === "(") {
+    if (line.substring(openIdx, openIdx + 2) === "([") return null;
+    if (openIdx > 0 && line[openIdx - 1] === "[") return null;
+  }
+  if (open === "[") {
+    const nextTwo = line.substring(openIdx, openIdx + 2);
+    if (
+      nextTwo === "[[" ||
+      nextTwo === "[(" ||
+      nextTwo === "[/" ||
+      nextTwo === "[\\"
+    )
+      return null;
+    if (openIdx > 0 && line[openIdx - 1] === "(") return null;
+  }
+
+  const beforeOpen = line.substring(0, openIdx);
+  const wordMatch = beforeOpen.match(/(\b\w+)$/);
+  if (!wordMatch) return null;
+
+  const id = wordMatch[1];
+  const wordStartIdx = openIdx - id.length;
+
+  let balance = 1;
+  let closeIdx = -1;
+  const searchStart = openIdx + open.length;
+  let idx = searchStart;
+
+  while (idx < line.length) {
+    if (line.substring(idx, idx + close.length) === close) {
+      balance--;
+      if (balance === 0) {
+        closeIdx = idx;
+        break;
+      }
+      idx += close.length;
+    } else if (line.substring(idx, idx + open.length) === open) {
+      balance++;
+      idx += open.length;
+    } else {
+      idx++;
+    }
+  }
+
+  if (closeIdx === -1) return null;
+
+  const label = line.substring(searchStart, closeIdx);
+  return {
+    id,
+    label,
+    start: wordStartIdx,
+    end: closeIdx + close.length,
+  };
+}
+
+function repairLineDelimiters(
+  line: string,
+  open: string,
+  close: string,
+): string {
+  let currentLine = line;
+  let searchStart = 0;
+
+  while (searchStart < currentLine.length) {
+    const openIdx = currentLine.substring(searchStart).indexOf(open);
+    if (openIdx === -1) break;
+
+    const absOpenIdx = searchStart + openIdx;
+    const match = parseNodeShape(
+      currentLine.substring(searchStart),
+      open,
+      close,
+    );
+    if (!match) {
+      searchStart = absOpenIdx + open.length;
+      continue;
+    }
+
+    const absStart = searchStart + match.start;
+    const absEnd = searchStart + match.end;
+    const trimmedLabel = match.label.trim();
+
+    if (!trimmedLabel.startsWith('"') || !trimmedLabel.endsWith('"')) {
+      if (
+        trimmedLabel.includes("(") ||
+        trimmedLabel.includes(")") ||
+        trimmedLabel.includes("[") ||
+        trimmedLabel.includes("]")
+      ) {
+        const cleanLabel = trimmedLabel.replace(/"/g, '\\"');
+        const replacement = `${match.id}${open}"${cleanLabel}"${close}`;
+        currentLine =
+          currentLine.substring(0, absStart) +
+          replacement +
+          currentLine.substring(absEnd);
+        searchStart = absStart + replacement.length;
+        continue;
+      }
+    }
+
+    searchStart = absEnd;
+  }
+
+  return currentLine;
 }

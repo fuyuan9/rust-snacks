@@ -35,9 +35,30 @@ export function renderLayout(options: LayoutOptions): string {
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
     mermaid.initialize({ 
-      startOnLoad: true,
+      startOnLoad: false,
       theme: 'dark',
-      securityLevel: 'strict'
+      securityLevel: 'strict',
+      suppressErrorAlert: true
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const elements = document.querySelectorAll('.mermaid');
+      let idCounter = 0;
+      for (const el of elements) {
+        const code = el.textContent;
+        const id = 'mermaid-svg-' + (idCounter++);
+        try {
+          const { svg } = await mermaid.render(id, code);
+          el.innerHTML = svg;
+        } catch (err) {
+          console.error('Mermaid render error:', err);
+          el.outerHTML = '<div class="mermaid-fallback-box"><p class="fallback-title">⚠️ ダイアグラム表示エラー (構文エラーがあります)</p><pre class="fallback-code"><code>' + 
+            code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + 
+            '</code></pre></div>';
+          const errEl = document.getElementById('d' + id);
+          if (errEl) errEl.remove();
+        }
+      }
     });
   </script>
 </head>

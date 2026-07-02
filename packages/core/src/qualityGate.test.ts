@@ -109,4 +109,17 @@ A[Scheduler] --> B[Worker]
       "Missing section about trade-offs and cautions.",
     );
   });
+
+  it("should fail if it contains invalid Mermaid syntax", () => {
+    const invalid = {
+      ...validArticle,
+      body_markdown: validArticle.body_markdown.replace(
+        "graph TD\nA[Scheduler] --> B[Worker]",
+        'graph TD\nA["Scheduler] --> B[Worker]',
+      ),
+    };
+    const result = verifyArticleQuality(invalid);
+    expect(result.passed).toBe(false);
+    expect(result.reasons[0]).toContain("Mermaid syntax error");
+  });
 });

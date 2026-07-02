@@ -236,6 +236,33 @@ blockquote p {
   justify-content: center;
 }
 
+.mermaid-fallback-box {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px dashed #ef4444;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 2rem 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fallback-title {
+  color: #f87171;
+  font-weight: bold;
+  margin-top: 0;
+  margin-bottom: 0.8rem;
+  font-size: 0.95rem;
+}
+
+.fallback-code {
+  background: #1e1e1e !important;
+  padding: 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 0;
+  font-family: monospace;
+}
+
 footer {
   border-top: 1px solid var(--border-color);
   margin-top: 5rem;

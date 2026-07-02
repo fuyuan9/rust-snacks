@@ -1,3 +1,5 @@
+import { repairMermaidSyntax } from "@rust-snacks/renderer";
+
 export interface ArticleInput {
   title: string;
   slug: string;
@@ -15,6 +17,86 @@ export interface ArticleInput {
 export interface QualityCheckResult {
   passed: boolean;
   reasons: string[];
+}
+
+export function validateMermaidSyntax(code: string): string[] {
+  const errors: string[] = [];
+  const lines = code
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  if (lines.length === 0) {
+    return ["Diagram is empty"];
+  }
+
+  const header = lines[0];
+  const validHeaders = [
+    /^graph\s+(TD|LR|TB|BT|RL)$/i,
+    /^flowchart\s+(TD|LR|TB|BT|RL)$/i,
+    /^sequenceDiagram$/i,
+    /^classDiagram$/i,
+    /^stateDiagram$/i,
+    /^stateDiagram-v2$/i,
+    /^erDiagram$/i,
+    /^gantt$/i,
+    /^pie$/i,
+    /^gitGraph$/i,
+    /^architecture$/i,
+    /^packet$/i,
+  ];
+
+  const hasValidHeader = validHeaders.some((regex) => regex.test(header));
+  if (!hasValidHeader) {
+    errors.push(`Invalid chart type declaration: "${header}"`);
+  }
+
+  const isFlowchart =
+    header.toLowerCase().startsWith("graph") ||
+    header.toLowerCase().startsWith("flowchart");
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    const lineNumber = i + 1;
+
+    if (line.startsWith("%%")) continue;
+
+    const quoteCount = (line.match(/"/g) || []).length;
+    if (quoteCount % 2 !== 0) {
+      errors.push(`Line ${lineNumber}: Unbalanced double quotes (") found.`);
+      continue;
+    }
+
+    if (isFlowchart) {
+      const strippedLine = line.replace(/"[^"]*"/g, '""');
+
+      if (/\b->\b/.test(strippedLine) || /\s+->\s+/.test(strippedLine)) {
+        errors.push(
+          `Line ${lineNumber}: Invalid arrow '->' found. In flowcharts, use '-->' or '==>' or '-.->' instead.`,
+        );
+      }
+
+      const shapeRegex = /(\w+)(?:\[([^\]]+)\]|\(([^)]+)\)|\{([^}]+)\})/g;
+      for (const shapeMatch of strippedLine.matchAll(shapeRegex)) {
+        const label = shapeMatch[2] || shapeMatch[3] || shapeMatch[4];
+        if (label) {
+          if (
+            label !== '""' &&
+            (label.includes("(") ||
+              label.includes(")") ||
+              label.includes("[") ||
+              label.includes("]"))
+          ) {
+            errors.push(
+              `Line ${lineNumber}: Label "${label}" contains special characters (parentheses or brackets) but is not enclosed in double quotes.`,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  return errors;
 }
 
 export function verifyArticleQuality(
@@ -50,6 +132,19 @@ export function verifyArticleQuality(
     reasons.push(
       `Contains ${mermaidBlocks.length} Mermaid diagrams (must be <= 3).`,
     );
+  }
+
+  // Parse each mermaid code block to validate syntax (after running through the repair filter)
+  const mermaidBlockRegex = /```mermaid([\s\S]*?)```/g;
+  for (const match of article.body_markdown.matchAll(mermaidBlockRegex)) {
+    const code = match[1].trim();
+    const repairedCode = repairMermaidSyntax(code);
+    const errors = validateMermaidSyntax(repairedCode);
+    if (errors.length > 0) {
+      for (const err of errors) {
+        reasons.push(`Mermaid syntax error: ${err}`);
+      }
+    }
   }
 
   // 5. Must have analyzed_at and commit sha referenced

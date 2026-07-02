@@ -1,5 +1,6 @@
 import { ArticleGenerator, selectTopRepository } from "@rust-snacks/core";
 import { DbClient } from "@rust-snacks/db";
+import { parseMarkdown, repairMermaidSyntax } from "@rust-snacks/renderer";
 import { SnapshotTaker } from "@rust-snacks/github";
 import { Hono } from "hono";
 import type { Bindings } from "../types";
@@ -141,3 +142,126 @@ debugRouter.get("/api/debug/generate", async (c) => {
     );
   }
 });
+
+// GET & POST /api/debug/repair-mermaid
+debugRouter.get("/api/debug/repair-mermaid", async (c) =>
+  handleRepairMermaid(c),
+);
+debugRouter.post("/api/debug/repair-mermaid", async (c) =>
+  handleRepairMermaid(c),
+);
+
+async function handleRepairMermaid(c: any) {
+  const adminKey = c.env.ADMIN_API_KEY;
+  if (!adminKey) {
+    return c.json(
+      { error: "ADMIN_API_KEY secret is not configured on the server." },
+      500,
+    );
+  }
+
+  const authQuery = c.req.query("key");
+  const authHeader = c.req.header("Authorization");
+  let requestKey = "";
+
+  if (authQuery) {
+    requestKey = authQuery.trim();
+  } else if (authHeader?.startsWith("Bearer ")) {
+    requestKey = authHeader.substring(7).trim();
+  }
+
+  if (requestKey !== adminKey) {
+    return c.json({ error: "Unauthorized. Invalid debug key." }, 401);
+  }
+
+  const r2Bucket = c.env.BUCKET;
+
+  try {
+    const queryResult = await c.env.DB.prepare(
+      "SELECT id, slug, title, body_markdown, status FROM articles;",
+    ).all();
+    const articles = queryResult.results as any as {
+      id: number;
+      slug: string;
+      title: string;
+      body_markdown: string;
+      status: string;
+    }[];
+
+    if (!articles || articles.length === 0) {
+      return c.json({
+        status: "success",
+        message: "No articles found in database.",
+      });
+    }
+
+    const report: {
+      id: number;
+      title: string;
+      status: string;
+      repaired: boolean;
+    }[] = [];
+    let repairCount = 0;
+
+    for (const article of articles) {
+      const originalMd = article.body_markdown;
+      const repairedMd = repairMermaidSyntax(originalMd);
+
+      if (originalMd !== repairedMd) {
+        const newHtml = parseMarkdown(repairedMd);
+
+        // Update database
+        await c.env.DB.prepare(
+          "UPDATE articles SET body_markdown = ?, body_html = ? WHERE id = ?;",
+        )
+          .bind(repairedMd, newHtml, article.id)
+          .run();
+
+        // If published, also upload to R2
+        if (article.status === "published") {
+          await r2Bucket.put(`articles/${article.slug}.html`, newHtml, {
+            httpMetadata: { contentType: "text/html" },
+          });
+        }
+
+        report.push({
+          id: article.id,
+          title: article.title,
+          status: article.status,
+          repaired: true,
+        });
+        repairCount++;
+      } else {
+        report.push({
+          id: article.id,
+          title: article.title,
+          status: article.status,
+          repaired: false,
+        });
+      }
+    }
+
+    if (repairCount > 0) {
+      await r2Bucket.delete("index.html");
+      await r2Bucket.delete("rss.xml");
+      await r2Bucket.delete("sitemap.xml");
+      console.log(
+        `[Repair API] Cleared R2 index/rss/sitemap caches because ${repairCount} articles were repaired.`,
+      );
+    }
+
+    return c.json({
+      status: "success",
+      message: `Completed database repair scan. Repaired ${repairCount} out of ${articles.length} articles.`,
+      repairedCount: repairCount,
+      totalCount: articles.length,
+      report,
+    });
+  } catch (err: any) {
+    console.error("[Repair API] Failed to run database repair:", err);
+    return c.json(
+      { error: "Failed to repair articles", details: err.message },
+      500,
+    );
+  }
+}
