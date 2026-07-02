@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { repairMermaidSyntax, parseMarkdown } from "./markdown";
+import {
+  repairMermaidSyntax,
+  parseMarkdown,
+  repairMarkdownMermaidBlocks,
+} from "./markdown";
 
 describe("repairMermaidSyntax", () => {
   it("should replace single arrow '->' with '-->' outside of quotes", () => {
@@ -74,5 +78,43 @@ graph TD
     expect(html).toContain(
       '<div class="mermaid">graph TD\n  A["Client (TCP)"] --> B</div>',
     );
+  });
+});
+
+describe("repairMarkdownMermaidBlocks", () => {
+  it("should only modify mermaid blocks and leave Rust blocks unmodified", () => {
+    const input = `
+# Article
+
+Some text with -> arrow.
+
+\`\`\`rust
+fn test() -> Result<(), Error> {
+  let x = A -> B; // wait, invalid rust but checks ->
+}
+\`\`\`
+
+\`\`\`mermaid
+graph TD
+  A[Client (TCP)] -> B
+\`\`\`
+`;
+    const expected = `
+# Article
+
+Some text with -> arrow.
+
+\`\`\`rust
+fn test() -> Result<(), Error> {
+  let x = A -> B; // wait, invalid rust but checks ->
+}
+\`\`\`
+
+\`\`\`mermaid
+graph TD
+  A["Client (TCP)"] --> B
+\`\`\`
+`;
+    expect(repairMarkdownMermaidBlocks(input).trim()).toBe(expected.trim());
   });
 });

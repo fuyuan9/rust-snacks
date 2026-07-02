@@ -236,3 +236,11 @@ function repairLineDelimiters(
 
   return currentLine;
 }
+
+export function repairMarkdownMermaidBlocks(markdown: string): string {
+  const mermaidRegex = /```mermaid([\s\S]*?)```/g;
+  return markdown.replace(mermaidRegex, (match, code) => {
+    const repairedCode = repairMermaidSyntax(code);
+    return `\`\`\`mermaid\n${repairedCode.trim()}\n\`\`\``;
+  });
+}

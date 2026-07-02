@@ -2,7 +2,7 @@ import { ArticleGenerator, selectTopRepository } from "@rust-snacks/core";
 import { DbClient } from "@rust-snacks/db";
 import {
   parseMarkdown,
-  repairMermaidSyntax,
+  repairMarkdownMermaidBlocks,
   renderLayout,
 } from "@rust-snacks/renderer";
 import { SnapshotTaker } from "@rust-snacks/github";
@@ -214,7 +214,7 @@ async function handleRepairMermaid(c: any) {
 
     for (const article of articles) {
       const originalMd = article.body_markdown;
-      const repairedMd = repairMermaidSyntax(originalMd);
+      const repairedMd = repairMarkdownMermaidBlocks(originalMd);
 
       if (originalMd !== repairedMd) {
         const repo = (await c.env.DB.prepare(
