@@ -117,6 +117,18 @@ export function repairMermaidSyntax(code: string): string {
       return match;
     });
 
+    const linkTextRegex = /(-+>|=+>|-\.-+>)\s*\|([^|]+)\|/g;
+    repaired = repaired.replace(linkTextRegex, (match, arrow, text) => {
+      const trimmedText = text.trim();
+      if (trimmedText && (trimmedText.includes("(") || trimmedText.includes(")"))) {
+        const cleanedText = trimmedText
+          .replace(/\s*\(([^)]+)\)/g, " - $1")
+          .replace(/[()]/g, "");
+        return `${arrow}|${cleanedText}|`;
+      }
+      return match;
+    });
+
     // 1. Repair invalid arrows "->" to "-->" (only outside quotes)
     const parts = repaired.split('"');
     for (let j = 0; j < parts.length; j += 2) {

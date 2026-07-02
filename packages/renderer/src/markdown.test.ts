@@ -77,6 +77,18 @@ graph TD
 `;
     expect(repairMermaidSyntax(input).trim()).toBe(expected.trim());
   });
+
+  it("should repair parentheses in link text", () => {
+    const input = `
+graph TD
+  A -->|2. Cargo IPC (cargo:rustc-env / rerun-if-changed)| B
+`;
+    const expected = `
+graph TD
+  A -->|2. Cargo IPC - cargo:rustc-env / rerun-if-changed| B
+`;
+    expect(repairMermaidSyntax(input).trim()).toBe(expected.trim());
+  });
 });
 
 describe("parseMarkdown with Mermaid rendering integration", () => {
