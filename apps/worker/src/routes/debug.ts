@@ -1,6 +1,10 @@
 import { ArticleGenerator, selectTopRepository } from "@rust-snacks/core";
 import { DbClient } from "@rust-snacks/db";
-import { parseMarkdown, repairMermaidSyntax } from "@rust-snacks/renderer";
+import {
+  parseMarkdown,
+  repairMermaidSyntax,
+  renderLayout,
+} from "@rust-snacks/renderer";
 import { SnapshotTaker } from "@rust-snacks/github";
 import { Hono } from "hono";
 import type { Bindings } from "../types";
@@ -178,7 +182,7 @@ async function handleRepairMermaid(c: any) {
 
   try {
     const queryResult = await c.env.DB.prepare(
-      "SELECT id, slug, title, body_markdown, status FROM articles;",
+      "SELECT id, slug, title, body_markdown, status, tags_json, seo_json, analyzed_at, target_commit_sha, repository_id FROM articles;",
     ).all();
     const articles = queryResult.results as any as {
       id: number;
@@ -186,6 +190,11 @@ async function handleRepairMermaid(c: any) {
       title: string;
       body_markdown: string;
       status: string;
+      tags_json: string;
+      seo_json: string;
+      analyzed_at: string;
+      target_commit_sha: string;
+      repository_id: number;
     }[];
 
     if (!articles || articles.length === 0) {
@@ -208,18 +217,56 @@ async function handleRepairMermaid(c: any) {
       const repairedMd = repairMermaidSyntax(originalMd);
 
       if (originalMd !== repairedMd) {
-        const newHtml = parseMarkdown(repairedMd);
+        const repo = (await c.env.DB.prepare(
+          "SELECT owner, name FROM repositories WHERE id = ?;",
+        )
+          .bind(article.repository_id)
+          .first()) as any as { owner: string; name: string } | null;
+
+        if (!repo) {
+          throw new Error(
+            `Repository not found for ID: ${article.repository_id}`,
+          );
+        }
+
+        const tags: string[] = JSON.parse(article.tags_json);
+        const seo: { title: string; description: string; keywords: string } =
+          JSON.parse(article.seo_json);
+        const bodyHtml = parseMarkdown(repairedMd);
+
+        // Form complete HTML with layout
+        const completeHtml = renderLayout({
+          title: seo.title,
+          description: seo.description,
+          keywords: seo.keywords,
+          bodyHtml: `
+            <article class="content-body">
+              <div class="article-header">
+                <h1 class="article-title">${article.title}</h1>
+                <div class="meta-info">
+                  <div class="meta-item">解析日: ${new Date(article.analyzed_at).toLocaleDateString("ja-JP")}</div>
+                  <div class="meta-item">対象コミット: <a href="https://github.com/${repo.owner}/${repo.name}/commit/${article.target_commit_sha}" target="_blank">${article.target_commit_sha.substring(0, 7)}</a></div>
+                  <div class="meta-item">リポジトリ: <a href="https://github.com/${repo.owner}/${repo.name}" target="_blank">${repo.owner}/${repo.name}</a></div>
+                </div>
+                <div class="tags">
+                  ${tags.map((t) => `<span class="tag">${t}</span>`).join("")}
+                </div>
+              </div>
+              ${bodyHtml}
+            </article>
+          `,
+        });
 
         // Update database
         await c.env.DB.prepare(
           "UPDATE articles SET body_markdown = ?, body_html = ? WHERE id = ?;",
         )
-          .bind(repairedMd, newHtml, article.id)
+          .bind(repairedMd, completeHtml, article.id)
           .run();
 
         // If published, also upload to R2
         if (article.status === "published") {
-          await r2Bucket.put(`articles/${article.slug}.html`, newHtml, {
+          await r2Bucket.put(`articles/${article.slug}.html`, completeHtml, {
             httpMetadata: { contentType: "text/html" },
           });
         }
